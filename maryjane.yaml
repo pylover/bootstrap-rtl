@@ -1,0 +1,107 @@
+
+context_main: !context
+  build: !template ${manifest_dir}/build
+  javascript: !template ${manifest_dir}/javascripts
+  sass: !template ${manifest_dir}/styles
+  path: !import os.path
+
+css: !watch
+  priority: 10
+  banner: "\nBuilding Bootstrap css:"
+
+
+  inputs: !options
+    ltr: !template ${sass}/bootstrap-ltr.sass
+    rtl: !template ${sass}/bootstrap-rtl.sass
+
+  outputs: !options
+    ltr: !template ${build}/css/bootstrap.ltr.css
+    rtl: !template ${build}/css/bootstrap.rtl.css
+
+  minified_outputs: !options
+    ltr: !template ${build}/css/bootstrap.ltr.min.css
+    rtl: !template ${build}/css/bootstrap.rtl.min.css
+
+
+  actions:
+
+  # Building
+
+    - !subprocess
+      banner: !template " ${css.inputs.ltr} > ${css.outputs.ltr}"
+      cwd: !eval manifest_dir
+      arguments: !template sass ${css.inputs.ltr} > ${css.outputs.ltr}
+      shell: true
+
+    - !subprocess
+      banner: !template " ${css.inputs.rtl} > ${css.outputs.rtl}"
+      cwd: !eval manifest_dir
+      arguments: !template sass ${css.inputs.rtl} > ${css.outputs.rtl}
+      shell: true
+
+  # Minifying
+
+    - !subprocess
+      banner: !template " ${css.outputs.ltr} > ${css.minified_outputs.ltr}"
+      shell: true
+      arguments: !template yui-compressor --type css ${css.outputs.ltr} > ${css.minified_outputs.ltr}
+
+    - !subprocess
+      banner: !template " ${css.outputs.rtl} > ${css.minified_outputs.rtl}"
+      shell: true
+      arguments: !template yui-compressor --type css ${css.outputs.rtl} > ${css.minified_outputs.rtl}
+
+
+    - !banner
+      text: "done. \n"
+
+  watcher: !watcher
+    recursive: true
+    predicate: !eval "lambda fn: fn.endswith('.sass')"
+    sources:
+      - !eval sass
+
+
+js: !watch
+  priority: 20
+  banner: "\nBuilding javascripts:"
+  inputs:
+    - !template ${javascript}/affix.js
+    - !template ${javascript}/alert.js
+    - !template ${javascript}/button.js
+    - !template ${javascript}/carousel.js
+    - !template ${javascript}/collapse.js
+    - !template ${javascript}/dropdown.js
+    - !template ${javascript}/tab.js
+    - !template ${javascript}/transition.js
+    - !template ${javascript}/scrollspy.js
+    - !template ${javascript}/modal.js
+    - !template ${javascript}/tooltip.js
+    - !template ${javascript}/popover.js
+
+  output: !template ${build}/js/bootstrap.js
+  minified_output: !template ${build}/js/bootstrap.min.js
+
+  actions:
+
+    - !banner
+      text: !template " ${'\\n  '.join(js.inputs)}\n Into: ${js.output}"
+    - !subprocess
+      arguments: !template cat ${' '.join(js.inputs)} > ${js.output}
+      shell: true
+
+    - !banner
+      text: !template " ${js.output} > ${js.minified_output}"
+    - !subprocess
+      shell: true
+      arguments: !template yui-compressor --type js ${js.output} > ${js.minified_output}
+
+    - !banner
+      text: "done. \n"
+
+  watcher: !watcher
+    recursive: true
+    predicate: !eval "lambda fn: fn.endswith('.js')"
+    sources:
+      - !template ${javascript}
+
